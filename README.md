@@ -1,19 +1,31 @@
 # R-iss
-Some R code for ISS, which right now just consists functions to read and plot spectra.
+Some R code for ISS, initially a couple of functions to read and plot spectra.
 
-## Clone
+## To use a built version on EOL servers
+
+The $RCODE environment varaible is used below to load the compiled functions into an R session.
+
+bash:
+
+    export RCODE=~maclean/git/R-iss/R/.RData
+
+csh:
+
+    setenv RCODE ~maclean/git/R-iss/R/.RData
+
+## To clone and roll your own
+
+### Clone
 
     cd my_git_place
     git clone git@github.com:ncareol/R-iss
 
-## Build it
+### Build it
 
     cd R-iss/R
     make
 
 ### Set RCODE environment variable
-
-$RCODE is used below to load the compiled functions into an R session.
 
 bash:
 
