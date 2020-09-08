@@ -37,6 +37,8 @@ csh:
     
 ## set NETCDF_DIR environment variable
 
+This is the directory containing the spectral NetCDF files, which are read by the **plotspec** function.
+
     cd my_netcdf_dir
 
 bash:
