@@ -1,24 +1,26 @@
 # R-iss
-Some R code for ISS
-Some R functions for spectral plotting
+Some R code for ISS, which right now just consists functions to read and plot spectra.
 
-Clone
+## Clone
 
     cd my_git_place
     git clone git@github.com:ncareol/R-iss
 
-Build it
+## Build it
 
-    cd R-iss
-    cd R
+    cd R-iss/R
     make
+
+### Set RCODE environment variable
+
+$RCODE is used below to load the compiled functions into an R session.
 
 bash:
     export RCODE=$PWD/.RData
 csh:
     setenv RCODE $PWD/.RData
     
-set NETCDF_DIR environment variable
+## set NETCDF_DIR environment variable
 
     cd my_netcdf_dir
 
@@ -26,6 +28,9 @@ bash:
     export NETCDF_DIR=$PWD
 csh:
     setenv NETCDF_DIR $PWD
+
+## Run R
+The function that reads the NetCDF file uses the **eolts** package, which is installed on EOL servers.
 
     R
     attach(Sys.getenv("RCODE"))     # attach the built code
@@ -48,9 +53,3 @@ csh:
     # exit (everything in R is a function)
     # then generally enter "y" to save history and objects
     q()
-
-
-    
-    
-                                                              1,0-1         Top
-
