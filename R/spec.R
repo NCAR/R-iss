@@ -49,7 +49,7 @@ readspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
 }
 
 plotspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
-    dir="/home/maclean/ncar/nima/test",
+    dir=Sys.getenv("NETCDF_DIR"),
     reorder=TRUE, xscale=1.0)
 {
 
