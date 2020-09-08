@@ -16,8 +16,11 @@ Some R code for ISS, which right now just consists functions to read and plot sp
 $RCODE is used below to load the compiled functions into an R session.
 
 bash:
+
     export RCODE=$PWD/.RData
+
 csh:
+
     setenv RCODE $PWD/.RData
     
 ## set NETCDF_DIR environment variable
@@ -25,8 +28,11 @@ csh:
     cd my_netcdf_dir
 
 bash:
+
     export NETCDF_DIR=$PWD
+
 csh:
+
     setenv NETCDF_DIR $PWD
 
 ## Run R
