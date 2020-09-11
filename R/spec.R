@@ -1,19 +1,28 @@
+# -*- mode: R; indent-tabs-mode: nil; c-basic-offset: 4; tab-width: 4; -*-
+# vim: set shiftwidth=4 softtabstop=4 expandtab:
+#
+# 2013,2014, Copyright University Corporation for Atmospheric Research
+# 
+# This file is part of the "eolts" package for the R software environment.
+# The license and distribution terms for this file may be found in the
+# file LICENSE.txt in this package.
+
 testplots <- function()
 {
     pdf("/tmp/mapr_spec.pdf",width=8,height=10.5)
     par(mfrow=c(6,4))
-    plotspec("01-Oct-2019_23-45-01.spc.nc", reorder=TRUE)
+    plotspec("01-Oct-2019_23-45-01.spc.nc")
     dev.off()
     pdf("/tmp/nima_spec.pdf",width=8,height=10.5)
     par(mfrow=c(6,4))
-    plotspec("spc_20191001.nc", reorder=FALSE)
+    plotspec("spc_20191001.nc")
     dev.off()
-    specdiff(f1="01-Oct-2019_23-45-01.spc.nc", f1reorder=TRUE,
-        f2="spc_20191001.nc", f2reorder=FALSE)
+    specdiff(f1="01-Oct-2019_23-45-01.spc.nc",
+        f2="spc_20191001.nc")
 }
 
 readspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
-    dir=Sys.getenv("NETCDF_DIR"), reorder=TRUE)
+    dir=Sys.getenv("NETCDF_DIR"), reorder=NULL)
 {
     require("eolts")
 
@@ -36,6 +45,12 @@ readspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
     # spectraDbs(time=26,height=40,nfft=256), time, height, nfft, stored in R as nfft,height,time
 
     # fill value = -9999
+
+    gattrs <- readnc(iod)
+    if (is.null(reorder)) 
+        reorder <- !is.null(gattrs$history) &&
+            length(grep("wppp",gattrs$history,fixed=TRUE)) == 0
+
     spec <- readnc(iod,"spectraDbs")
     hts <- readnc(iod,"heights")
     ipp <- readnc(iod,"interPulsePer") * 1.e-9  # convert from nsec to sec
@@ -72,17 +87,17 @@ readmom <- function(file="moments_20191001.nc",
 nyquistvel <- function(ipp,nci,freq)
 {
     # compute nyquist (highest resolvable) velocity in m/s
-    # from inter-pulse period in nanosec, number of coherent
-    # integrations and the transmitter frequency in MHz.
+    # from inter-pulse period in sec, number of coherent
+    # integrations and the transmitter frequency in Hz.
     
-    vel <- 1 / (2.0 * nci * ipp) * 2.998e8 / (2.0 * freq)
+    1 / (2.0 * nci * ipp) * 2.998e8 / (2.0 * freq)
 }
 
 plotspec <- function(
     spcfile="01-Oct-2019_23-45-01.spc.nc",
     momfile=NULL,
     dir=Sys.getenv("NETCDF_DIR"),
-    reorder=TRUE, xscale=1.0)
+    reorder=NULL, xscale=1.0)
 {
 
     x <- readspec(file=spcfile,dir=dir,reorder=reorder)
@@ -125,10 +140,10 @@ plotspec <- function(
                 points(dopvel, y0 + dh * 0.5, pch="+", col="red")
                 velwid <- c(dopvel-0.5*xm$specWid[iht,it],
                     dopvel+0.5*xm$specWid[iht,it])
-                barpts <- c(rep(velwid[1],3),rep(velwid[2],3))
-                ymid <- y0 + dh * 0.5
-                ypts <- c(y0, y0+dh, ymid, ymid, y0, y0+dh)
-                lines(barpts, ypts, col="red")
+                # error bar around doppler velocity
+                xpts <- c(rep(velwid[1],3),rep(velwid[2],3))
+                ypts <- c(y0, y0+dh, y0 + dh * 0.5, y0 + dh * 0.5, y0, y0+dh)
+                lines(xpts, ypts, col="red")
             }
         }
         # write file name at top of page
@@ -138,8 +153,8 @@ plotspec <- function(
     }
 }
 
-specdiff <- function(f1="01-Oct-2019_23-45-01.spc.nc",f1reorder=TRUE,
-    f2="spcmom_20191001.nc",f2reorder=FALSE,
+specdiff <- function(f1="01-Oct-2019_23-45-01.spc.nc",f1reorder=NULL,
+    f2="spcmom_20191001.nc",f2reorder=NULL,
     dir="/home/maclean/ncar/nima/test")
 {
 
