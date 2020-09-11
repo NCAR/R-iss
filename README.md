@@ -56,20 +56,26 @@ The function that reads the NetCDF file uses the **eolts** package, which is ins
     attach(Sys.getenv("RCODE"))     # attach the built code
 
     # generate all spectra plots on interactive window
-    plotspec(file="01-Oct-2019_23-45-01.spc.nc")
+    plotspec(spcfile="01-Oct-2019_23-45-01.spc.nc",
+            momfile="moments_20191001.nc")
 
     # same plots in a PDF
     pdf(file="/tmp/mapr_spec.pdf",width=8,height=10.5)
     par(mfrow=c(6,4))   # 6x4 layout on pdf
-    plotspec(file="01-Oct-2019_23-45-01.spc.nc")
+    plotspec(spcfile="01-Oct-2019_23-45-01.spc.nc",
+            momfile="moments_20191001.nc")
     dev.off()           # close pdf, it can now be viewed
 
     # spectra plots from NIMA output, reorder=FALSE
     pdf(file="/tmp/nima_spec.pdf",width=8,height=10.5)
     par(mfrow=c(6,4))   # 6x4 layout on pdf
-    plotspec(file="spc_20191001.nc",reorder=FALSE)
+    plotspec(spcfile="01-Oct-2019_23-45-01.spc.nc",
+            momfile="moments_20191001.nc")
     dev.off()           # close pdf
+
+    # to see the arguments to plotspec
+    args(plotspec)
     
     # exit (everything in R is a function)
-    # then generally enter "y" to save history and objects
     q()
+    # then generally enter "y" to save history and objects
