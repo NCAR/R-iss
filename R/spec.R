@@ -52,7 +52,7 @@ readspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
     list(spec=spec, hts=hts, ipp=ipp, nci=nci, freq=freq)
 }
 
-readmom <- function(file="01-Oct-2019_23-45-01.spc.nc",
+readmom <- function(file="moments_20191001.nc",
     dir=Sys.getenv("NETCDF_DIR"))
 {
     require("eolts")
@@ -80,13 +80,15 @@ nyquistvel <- function(ipp,nci,freq)
 
 plotspec <- function(
     spcfile="01-Oct-2019_23-45-01.spc.nc",
-    momfile="moments_20191001.nc",
+    momfile=NULL,
     dir=Sys.getenv("NETCDF_DIR"),
     reorder=TRUE, xscale=1.0)
 {
 
     x <- readspec(file=spcfile,dir=dir,reorder=reorder)
-    xm <- readmom(file=momfile,dir=dir)
+
+    if (!is.null(momfile)) xm <- readmom(file=momfile,dir=dir)
+    else xm <- NULL
 
     nfft <- dim(x$spec)[1]
     nhts <- dim(x$hts)[1]
@@ -118,14 +120,16 @@ plotspec <- function(
             sd <- y0 + dh * sd / ds
             lines(vel,sd)
 
-            dopvel <- xm$vel[iht, it]
-            points(dopvel, y0 + dh * 0.5, pch="+", col="red")
-            velwid <- c(dopvel-0.5*xm$specWid[iht,it],
-                dopvel+0.5*xm$specWid[iht,it])
-            barpts <- c(rep(velwid[1],3),rep(velwid[2],3))
-            ymid <- y0 + dh * 0.5
-            ypts <- c(y0, y0+dh, ymid, ymid, y0, y0+dh)
-            lines(barpts, ypts, col="red")
+            if (!is.null(xm)) {
+                dopvel <- xm$vel[iht, it]
+                points(dopvel, y0 + dh * 0.5, pch="+", col="red")
+                velwid <- c(dopvel-0.5*xm$specWid[iht,it],
+                    dopvel+0.5*xm$specWid[iht,it])
+                barpts <- c(rep(velwid[1],3),rep(velwid[2],3))
+                ymid <- y0 + dh * 0.5
+                ypts <- c(y0, y0+dh, ymid, ymid, y0, y0+dh)
+                lines(barpts, ypts, col="red")
+            }
         }
         # write file name at top of page
         if (all(par("mfg")[1:2] == c(1,1)))
