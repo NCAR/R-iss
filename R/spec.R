@@ -22,7 +22,7 @@ testplots <- function()
 }
 
 readspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
-    dir=Sys.getenv("NETCDF_DIR"), reorder=NULL)
+    dir=Sys.getenv("NETCDF_DIR"))
 {
     require("eolts")
 
@@ -47,9 +47,8 @@ readspec <- function(file="01-Oct-2019_23-45-01.spc.nc",
     # fill value = -9999
 
     gattrs <- readnc(iod)
-    if (is.null(reorder)) 
-        reorder <- !is.null(gattrs$history) &&
-            length(grep("wppp",gattrs$history,fixed=TRUE)) == 0
+    reorder <- !is.null(gattrs$history) &&
+        length(grep("wppp",gattrs$history,fixed=TRUE)) == 0
 
     spec <- readnc(iod,"spectraDbs")
     hts <- readnc(iod,"heights")
@@ -97,10 +96,12 @@ plotspec <- function(
     spcfile="01-Oct-2019_23-45-01.spc.nc",
     momfile=NULL,
     dir=Sys.getenv("NETCDF_DIR"),
-    reorder=NULL, xscale=1.0)
+    xscale=1.0,
+    db=FALSE)
 {
+    require("lattice")
 
-    x <- readspec(file=spcfile,dir=dir,reorder=reorder)
+    x <- readspec(file=spcfile,dir=dir)
 
     if (!is.null(momfile)) xm <- readmom(file=momfile,dir=dir)
     else xm <- NULL
@@ -115,6 +116,7 @@ plotspec <- function(
     # tighten margins
     par(mar=c(2.0,2,1.0,0.2), mgp=c(1.0,0.3,0))
 
+    ntimes <- 1
     for (it in 1:ntimes) {
         nyvel <- nyquistvel(x$ipp[it], x$nci[it], x$freq)
         df <- nyvel / nfft * 2
@@ -123,43 +125,94 @@ plotspec <- function(
         dhts <- diff(x$hts[, it])
         hmin <- x$hts[1,it] - dhts[1] * 0.30
         hmax <- x$hts[nhts,it] + dhts[length(dhts)] * 1.30
-        # set up plot scales and plot the axes but no data
-        plot(c(-nyvel,nyvel)*xscale,c(hmin,hmax), type="n", 
-            xlab="vel (m/s)", xaxs="i",
-            ylab="", yaxs="i") 
-        for (iht in 1:nhts) {
-            y0 <- x$hts[iht, it]
-            dh <- dhts[min(iht,length(dhts))]
-            sd <- x$spec[,iht,it]
-            ds <- diff(range(sd, na.rm=TRUE))
-            sd <- y0 + dh * sd / ds
-            lines(vel,sd)
 
-            if (!is.null(xm)) {
-                dopvel <- xm$vel[iht, it]
-                points(dopvel, y0 + dh * 0.5, pch="+", col="red")
-                velwid <- c(dopvel-0.5*xm$specWid[iht,it],
-                    dopvel+0.5*xm$specWid[iht,it])
-                # error bar around doppler velocity
-                xpts <- c(rep(velwid[1],3),rep(velwid[2],3))
-                ypts <- c(y0, y0+dh, y0 + dh * 0.5, y0 + dh * 0.5, y0, y0+dh)
-                lines(xpts, ypts, col="red")
+        dolevelplot <- TRUE
+
+        if (dolevelplot) {
+            mypanel.lines <- function(...)
+            {
+                args <- list(...)
+                # 2nd index, column, velocity, varies most rapidly
+                # indices of the start of each height, minimum velocity
+                htpts <- ((0:(nhts-1)) * nfft) + 1
+                # heights
+                hts <- args$y[htpts]
+                dhts <- diff(hts)
+
+                lapply(1:nhts, function(iht) {
+                    y0 <- args$y[htpts][iht]
+                    dh <- dhts[min(iht,length(dhts))]
+
+                    sd <- args$z[htpts[iht]:(htpts[iht]+nfft-1)]
+                    ds <- diff(range(sd, na.rm=TRUE))
+                    sd <- y0 + dh * sd / ds
+                    panel.lines(vel,sd)
+
+                    if (!is.null(xm)) {
+                        dopvel <- xm$vel[iht, it]
+                        panel.points(dopvel, y0 + dh * 0.5, pch="+", col="red")
+                        velwid <- c(dopvel-0.5*xm$specWid[iht,it],
+                            dopvel+0.5*xm$specWid[iht,it])
+                        # error bar around doppler velocity
+                        xpts <- c(rep(velwid[1],3),rep(velwid[2],3))
+                        ypts <- c(y0, y0+dh, y0 + dh * 0.5, y0 + dh * 0.5, y0, y0+dh)
+                        panel.lines(xpts, ypts, col="red")
+                    }
+                    NULL
+                })
+                NULL
             }
+            plot(levelplot(if (db) 10 * log10(x$spec[,,it]) else x$spec[,,it],
+                row.values=vel, column.values=x$hts[,it], aspect="fill",
+                xlab="vel(m)", ylab="heigth(m)",
+                main=paste(paste(spcfile, momfile,sep=", "),
+                    if (db) "(db)" else ""),
+                panel=function(...) {
+                    panel.levelplot(...)
+                    mypanel.lines(...)
+
+                }
+                ))
         }
-        # write file name at top of page
-        if (all(par("mfg")[1:2] == c(1,1)))
-            mtext(paste(spcfile,momfile,sep=", "),
-                side=3,line=-0.9,outer=TRUE,cex=0.8)
+        else {
+            # set up plot scales and plot the axes but no data
+            plot(c(-nyvel,nyvel)*xscale,c(hmin,hmax), type="n", 
+                xlab="vel (m/s)", xaxs="i",
+                ylab="", yaxs="i") 
+            for (iht in 1:nhts) {
+                y0 <- x$hts[iht, it]
+                dh <- dhts[min(iht,length(dhts))]
+                sd <- x$spec[,iht,it]
+                ds <- diff(range(sd, na.rm=TRUE))
+                sd <- y0 + dh * sd / ds
+                lines(vel,sd)
+
+                if (!is.null(xm)) {
+                    dopvel <- xm$vel[iht, it]
+                    points(dopvel, y0 + dh * 0.5, pch="+", col="red")
+                    velwid <- c(dopvel-0.5*xm$specWid[iht,it],
+                        dopvel+0.5*xm$specWid[iht,it])
+                    # error bar around doppler velocity
+                    xpts <- c(rep(velwid[1],3),rep(velwid[2],3))
+                    ypts <- c(y0, y0+dh, y0 + dh * 0.5, y0 + dh * 0.5, y0, y0+dh)
+                    lines(xpts, ypts, col="red")
+                }
+            }
+            # write file name at top of page
+            if (all(par("mfg")[1:2] == c(1,1)))
+                mtext(paste(spcfile,momfile,sep=", "),
+                    side=3,line=-0.9,outer=TRUE,cex=0.8)
+        }
     }
 }
 
-specdiff <- function(f1="01-Oct-2019_23-45-01.spc.nc",f1reorder=NULL,
-    f2="spcmom_20191001.nc",f2reorder=NULL,
+specdiff <- function(f1="01-Oct-2019_23-45-01.spc.nc",
+    f2="spcmom_20191001.nc",
     dir="/home/maclean/ncar/nima/test")
 {
 
-    x1 <- readspec(file=f1,dir=dir,reorder=f1reorder)
-    x2 <- readspec(file=f2,dir=dir,reorder=f2reorder)
+    x1 <- readspec(file=f1,dir=dir)
+    x2 <- readspec(file=f2,dir=dir)
 
     cat(paste(f1,", ",f2,": max diff=",
         max(x1$spec-x2$spec, na.rm=TRUE),"\n",sep=""))
