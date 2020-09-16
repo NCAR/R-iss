@@ -119,8 +119,9 @@ plotspec <- function(
     momfile="moments_%Y%m%d.nc",
     dir=Sys.getenv("NETCDF_DIR"),
     xscale=1.0,
-    db=FALSE,
+    dB=FALSE,
     layout=c(1,1),
+    palette="Heat",
     ndev=1)
 {
     # ndev:
@@ -194,11 +195,11 @@ plotspec <- function(
             NULL
         }
         pd <- -0.3
-        plt <- levelplot(if (db) 10 * log10(x$spec[,,it]) else x$spec[,,it],
+        plt <- levelplot(if (dB) 10 * log10(x$spec[,,it]) else x$spec[,,it],
             row.values=vel, column.values=x$hts[,it], aspect="fill",
             xlab="vel(m/s)", ylab="heigth(m)",
             main=paste(format(positions(x$time[it,])),
-                if (db) "(db)" else ""),
+                if (dB) "(dB)" else ""),
             sub=paste(paste(spcfile, momfile,sep=", ")),
             panel=function(...) {
                 panel.levelplot(...)
@@ -206,6 +207,7 @@ plotspec <- function(
             },
             scales=list(y=list(rot=c(90,-90))),
             colorkey=list(labels=list(rot=90)),
+            col.regions=hcl.colors(100,palette=palette,rev=TRUE),
             par.settings=list(axis.components=
                 list(bottom=list(pad1=pd,pad2=pd),top=list(pad1=pd,pad2=pd),
                 right=list(pad1=pd,pad2=pd),left=list(pad1=pd,pad2=pd)))
