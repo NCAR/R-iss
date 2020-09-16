@@ -120,7 +120,7 @@ plotspec <- function(
     dir=Sys.getenv("NETCDF_DIR"),
     xscale=1.0,
     db=FALSE,
-    layout=c(4,3),
+    layout=c(1,1),
     ndev=1)
 {
     # ndev:
