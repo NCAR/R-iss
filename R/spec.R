@@ -120,6 +120,7 @@ plotspec <- function(
     dir=Sys.getenv("NETCDF_DIR"),
     xscale=1.0,
     db=FALSE,
+    layout=c(4,3),
     ndev=1)
 {
     # ndev:
@@ -143,12 +144,11 @@ plotspec <- function(
     # tighten margins
     par(mar=c(2.0,2,1.0,0.2), mgp=c(1.0,0.3,0))
 
+    plots <- list()
     iplot <- 0
+
     for (it in 1:ntimes) {
         iplot <- iplot + 1
-        ncdev <- length(dev.list())
-        if (iplot > ncdev && ncdev < ndev) dev.new()
-        else dev.set()
 
         nyvel <- nyquistvel(x$ipp[it], x$nci[it], x$freq)
         df <- nyvel / nfft * 2
@@ -160,83 +160,73 @@ plotspec <- function(
 
         dolevelplot <- TRUE
 
-        if (dolevelplot) {
-            mypanel.lines <- function(...)
-            {
-                args <- list(...)
-                # 2nd index, column, velocity, varies most rapidly
-                # indices of the start of each height, minimum velocity
-                htpts <- ((0:(nhts-1)) * nfft) + 1
-                # heights
-                hts <- args$y[htpts]
-                dhts <- diff(hts)
+        mypanel.lines <- function(...)
+        {
+            args <- list(...)
+            # 2nd index, column, velocity, varies most rapidly
+            # indices of the start of each height, minimum velocity
+            htpts <- ((0:(nhts-1)) * nfft) + 1
+            # heights
+            hts <- args$y[htpts]
+            dhts <- diff(hts)
 
-                lapply(1:nhts, function(iht) {
-                    y0 <- args$y[htpts][iht]
-                    dh <- dhts[min(iht,length(dhts))]
-
-                    sd <- args$z[htpts[iht]:(htpts[iht]+nfft-1)]
-                    ds <- diff(range(sd, na.rm=TRUE))
-                    sd <- y0 + dh * sd / ds
-                    panel.lines(vel,sd)
-
-                    if (!is.null(xm)) {
-                        dopvel <- xm$vel[iht, it]
-                        panel.points(dopvel, y0 + dh * 0.5, pch="+", col="red")
-                        velwid <- c(dopvel-0.5*xm$specWid[iht,it],
-                            dopvel+0.5*xm$specWid[iht,it])
-                        # error bar around doppler velocity
-                        xpts <- c(rep(velwid[1],3),rep(velwid[2],3))
-                        ypts <- c(y0, y0+dh, y0 + dh * 0.5, y0 + dh * 0.5, y0, y0+dh)
-                        panel.lines(xpts, ypts, col="red")
-                    }
-                    NULL
-                })
-                NULL
-            }
-            plot(levelplot(if (db) 10 * log10(x$spec[,,it]) else x$spec[,,it],
-                row.values=vel, column.values=x$hts[,it], aspect="fill",
-                xlab="vel(m/s)", ylab="heigth(m)",
-                main=paste(format(positions(x$time[it,])),
-                    if (db) "(db)" else ""),
-                sub=paste(paste(spcfile, momfile,sep=", ")),
-                panel=function(...) {
-                    panel.levelplot(...)
-                    mypanel.lines(...)
-                }
-                ))
-        }
-        else {
-            # set up plot scales and plot the axes but no data
-            plot(c(-nyvel,nyvel)*xscale,c(hmin,hmax), type="n", 
-                xlab="vel (m/s)", xaxs="i",
-                ylab="", yaxs="i") 
-            for (iht in 1:nhts) {
-                y0 <- x$hts[iht, it]
+            lapply(1:nhts, function(iht) {
+                y0 <- args$y[htpts][iht]
                 dh <- dhts[min(iht,length(dhts))]
-                sd <- x$spec[,iht,it]
+
+                sd <- args$z[htpts[iht]:(htpts[iht]+nfft-1)]
                 ds <- diff(range(sd, na.rm=TRUE))
                 sd <- y0 + dh * sd / ds
-                lines(vel,sd)
+                panel.lines(vel,sd)
 
                 if (!is.null(xm)) {
                     dopvel <- xm$vel[iht, it]
-                    points(dopvel, y0 + dh * 0.5, pch="+", col="red")
+                    panel.points(dopvel, y0 + dh * 0.5, pch="+", col="red")
                     velwid <- c(dopvel-0.5*xm$specWid[iht,it],
                         dopvel+0.5*xm$specWid[iht,it])
                     # error bar around doppler velocity
                     xpts <- c(rep(velwid[1],3),rep(velwid[2],3))
                     ypts <- c(y0, y0+dh, y0 + dh * 0.5, y0 + dh * 0.5, y0, y0+dh)
-                    lines(xpts, ypts, col="red")
+                    panel.lines(xpts, ypts, col="red")
                 }
-            }
-            # write file name at top of page
-            if (all(par("mfg")[1:2] == c(1,1)))
-                mtext(paste(spcfile,momfile,sep=", "),
-                    side=3,line=-0.9,outer=TRUE,cex=0.8)
+                NULL
+            })
+            NULL
         }
+        pd <- -0.3
+        plt <- levelplot(if (db) 10 * log10(x$spec[,,it]) else x$spec[,,it],
+            row.values=vel, column.values=x$hts[,it], aspect="fill",
+            xlab="vel(m/s)", ylab="heigth(m)",
+            main=paste(format(positions(x$time[it,])),
+                if (db) "(db)" else ""),
+            sub=paste(paste(spcfile, momfile,sep=", ")),
+            panel=function(...) {
+                panel.levelplot(...)
+                mypanel.lines(...)
+            },
+            scales=list(y=list(rot=c(90,-90))),
+            colorkey=list(labels=list(rot=90)),
+            par.settings=list(axis.components=
+                list(bottom=list(pad1=pd,pad2=pd),top=list(pad1=pd,pad2=pd),
+                right=list(pad1=pd,pad2=pd),left=list(pad1=pd,pad2=pd)))
+        )
+        plots[[iplot]] <- plt
     }
-    invisible(NULL)
+    pts2 <- lapply(1:length(plots),function(i) {
+        nperpage <- prod(layout)
+        ipage <- trunc((i - 1) / nperpage) + 1
+        ndevs <- length(dev.list())
+        ip <- (i-1) %% nperpage + 1
+        if (ipage > ndevs && ipage <= ndev) dev.new()
+        else if (ip == 1 && ipage > 1) dev.set()
+
+        lyout <- c(trunc((ip-1)/layout[2])+1,((ip-1)%%layout[2]+1),layout)
+        more <- ip < nperpage && i < length(plots)
+        cat("lyout=",paste(lyout,collapse=","),", more=",more,"\n")
+        print(plots[[i]],split=lyout, more=more)
+    })
+    # browser()
+    invisible(plots)
 }
 
 specdiff <- function(f1="%d-%b-%Y_%H-%M-%S.spc.nc",
