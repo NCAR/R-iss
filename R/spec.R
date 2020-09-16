@@ -118,11 +118,13 @@ plotspec <- function(
     spcfile="%d-%b-%Y_%H-%M-%S.spc.nc",
     momfile="moments_%Y%m%d.nc",
     dir=Sys.getenv("NETCDF_DIR"),
-    xscale=1.0,
-    dB=FALSE,
-    layout=c(1,1),
-    palette="Heat",
-    ndev=1)
+    xscale=1.0,         # expand velocity scale
+    dB=FALSE,           # convert to dB, 10*log10(x) before plotting
+    layout=c(1,1),      # nx,ny layout on page
+    palette="Heat2",    # color palette
+    contour=FALSE,      # whether to add contour lines
+    ndev=1              # how many devices (windows) to ope
+    )
 {
     # ndev:
     #   1: one device, overplot all plots on same device
@@ -150,6 +152,11 @@ plotspec <- function(
 
     for (it in 1:ntimes) {
         iplot <- iplot + 1
+
+        # If one time was selected in NetCDF file, spec will have 2 dimension
+        # else 3
+        if (length(dim(x$spec)) == 3) spec <- x$spec[,,it]
+        else spec <- x$spec
 
         nyvel <- nyquistvel(x$ipp[it], x$nci[it], x$freq)
         df <- nyvel / nfft * 2
@@ -195,7 +202,7 @@ plotspec <- function(
             NULL
         }
         pd <- -0.3
-        plt <- levelplot(if (dB) 10 * log10(x$spec[,,it]) else x$spec[,,it],
+        plt <- levelplot(if (dB) 10 * log10(spec) else spec,
             row.values=vel, column.values=x$hts[,it], aspect="fill",
             xlab="vel(m/s)", ylab="heigth(m)",
             main=paste(format(positions(x$time[it,])),
@@ -208,6 +215,7 @@ plotspec <- function(
             scales=list(y=list(rot=c(90,-90))),
             colorkey=list(labels=list(rot=90)),
             col.regions=hcl.colors(100,palette=palette,rev=TRUE),
+            contour=contour,
             par.settings=list(axis.components=
                 list(bottom=list(pad1=pd,pad2=pd),top=list(pad1=pd,pad2=pd),
                 right=list(pad1=pd,pad2=pd),left=list(pad1=pd,pad2=pd)))
