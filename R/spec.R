@@ -118,7 +118,7 @@ plotspec <- function(
     spcfile="%d-%b-%Y_%H-%M-%S.spc.nc",
     momfile="moments_%Y%m%d.nc",
     dir=Sys.getenv("NETCDF_DIR"),
-    xscale=1.0,         # expand velocity scale
+    xzoom=1.0,          # expansion of velocity scale
     dB=FALSE,           # convert to dB, 10*log10(x) before plotting
     layout=c(1,1),      # nx,ny layout on page
     palette="Heat2",    # color palette
@@ -153,8 +153,8 @@ plotspec <- function(
     for (it in 1:ntimes) {
         iplot <- iplot + 1
 
-        # If one time was selected in NetCDF file, spec will have 2 dimension
-        # else 3
+        # If one time was selected in NetCDF file, spec
+        # will have 2 dimensions else 3
         if (length(dim(x$spec)) == 3) spec <- x$spec[,,it]
         else spec <- x$spec
 
@@ -205,6 +205,7 @@ plotspec <- function(
         plt <- levelplot(if (dB) 10 * log10(spec) else spec,
             row.values=vel, column.values=x$hts[,it], aspect="fill",
             xlab="vel(m/s)", ylab="heigth(m)",
+            xlim=range(vel) / xzoom,
             main=paste(format(positions(x$time[it,])),
                 if (dB) "(dB)" else ""),
             sub=paste(paste(spcfile, momfile,sep=", ")),
